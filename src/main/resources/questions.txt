@@ -1,0 +1,3 @@
+3;how are you;false;1
+5;what is your age;false;3;3
+6;are you a programmer;true;-1
