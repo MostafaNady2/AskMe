@@ -112,5 +112,3 @@ Stored in `./src/main/resources/`:
 * Replace file storage with an actual database
 * Support for concurrent users and sessions
 
-
-```
