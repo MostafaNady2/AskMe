@@ -4,21 +4,20 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import static Utils.Constants.*;
+
 public class FileHandler {
-    public static int userId ;
-    public static int questionId;
-    public static int answerId;
 
     public static void createFiles() {
         File file = new File("./src/main/resources/ids.txt");
         if(file.exists()) {
             return;
         }
-        try (PrintWriter out1 = new PrintWriter("./src/main/resources/users.txt");
-             PrintWriter out2 = new PrintWriter("./src/main/resources/answers.txt");
-             PrintWriter out3 = new PrintWriter("./src/main/resources/questions.txt");
-             PrintWriter out4 = new PrintWriter("./src/main/resources/ids.txt");
-             PrintWriter out5 = new PrintWriter("./src/main/resources/from_to.txt");){
+        try (PrintWriter out1 = new PrintWriter(USERS_FILE);
+             PrintWriter out2 = new PrintWriter(ANSWERS_FILE);
+             PrintWriter out3 = new PrintWriter(QUESTIONS_FILE);
+             PrintWriter out4 = new PrintWriter(IDS_FILE);
+             PrintWriter out5 = new PrintWriter(FROM_TO_FILE)){
             System.out.println("          loading system files           ");
             Thread.sleep(1000);
 
@@ -55,7 +54,7 @@ public class FileHandler {
     }
 
     public void saveFromTo(int from, int to,int id) {
-        File file = new File("./src/main/resources/from_to.txt");
+        File file = new File(FROM_TO_FILE);
         if (file.exists()) {
             try(PrintWriter pr = new PrintWriter(new FileWriter(file,true),true)){
                 pr.println(from+";"+to+";"+id+";"+"false");
@@ -68,7 +67,7 @@ public class FileHandler {
     }
 
     public static void saveIds(int userId, int questionId, int answerId) {
-        File file = new File("./src/main/resources/ids.txt");
+        File file = new File(IDS_FILE);
         if (file.exists()) {
             try (PrintWriter pr = new PrintWriter(new FileWriter(file), true)) {
                 pr.println(userId);
@@ -82,17 +81,17 @@ public class FileHandler {
         }
     }
 
-    public void loadIds() {
-        File file = new File("./src/main/resources/ids.txt");
+    public static void loadIds() {
+        File file = new File(IDS_FILE);
         if (file.exists()) {
             try(Scanner sc = new Scanner(file)){
                 while (sc.hasNextLine()) {
-                    userId = Integer.parseInt(sc.nextLine());
+                    IdGenerator.userId = Integer.parseInt(sc.nextLine());
                     if(sc.hasNextLine()){
-                        questionId = Integer.parseInt(sc.nextLine());
+                        IdGenerator.questionId = Integer.parseInt(sc.nextLine());
                     }
                     if(sc.hasNextLine()){
-                        answerId = Integer.parseInt(sc.nextLine());
+                        IdGenerator.answerId = Integer.parseInt(sc.nextLine());
                     }
                 }
             }catch (FileNotFoundException | NumberFormatException e){
@@ -101,25 +100,5 @@ public class FileHandler {
         } else {
             System.out.println("file not found");
         }
-    }
-    public int nextUserId() {
-        loadIds();
-        userId++;
-        saveIds(userId, questionId, answerId);
-        return userId;
-    }
-
-    public int nextQuestionId() {
-        loadIds();
-        questionId++;
-        saveIds(userId, questionId, answerId);
-        return questionId;
-    }
-
-    public int nextAnswerId() {
-        loadIds();
-        answerId++;
-        saveIds(userId, questionId, answerId);
-        return answerId;
     }
 }

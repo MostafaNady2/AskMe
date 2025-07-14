@@ -1,14 +1,18 @@
 package services;
 import Utils.FileHandler;
 import models.User;
-
+import repository.AnswersRepository;
+import repository.FromToRepository;
+import repository.QuestionRepository;
+import repository.UserRepository;
+import static Utils.Constants.*;
 import java.io.File;
 import java.util.List;
 
-public class SessionServices {
+public class SessionService {
 
     public static User signIn(String username, String password){
-        List<String> usernames = UserServices.users;
+        List<String> usernames = UserRepository.users;
         String[] split;
         for (String s : usernames){
             split = s.split(";");
@@ -19,16 +23,16 @@ public class SessionServices {
         return null;
     }
     public static void initializeInMemoryDatabase(){
-        UserServices.setUsers();
-        QuestionServices.setQuestions();
-        UserServices.setMapper();
-        QuestionServices.setAnswers();
-        QuestionServices.setAnswerByQid();
+        UserRepository.setUsers();
+        QuestionRepository.setQuestions();
+        FromToRepository.setMapper();
+        AnswersRepository.setAnswers();
+        AnswersRepository.setAnswerByQid();
     }
     public static void startSession(){
         FileHandler.createFiles();
-        SessionServices.initializeInMemoryDatabase();
-        File file = new File("./src/main/resources/ids.txt");
+        SessionService.initializeInMemoryDatabase();
+        File file = new File(IDS_FILE);
         if (file.exists() && file.length() == 0){
             FileHandler.saveIds(1,1,1);
         }

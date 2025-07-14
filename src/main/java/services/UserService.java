@@ -1,36 +1,28 @@
 package services;
-import Utils.FileHandler;
 import models.User;
+import repository.AnswersRepository;
+import repository.FromToRepository;
+import repository.QuestionRepository;
+import repository.UserRepository;
 import java.util.*;
-import static services.QuestionServices.answerByQid;
 
-public class UserServices {
+import static Utils.Constants.SEPARATOR;
 
-    public static ArrayList<String> users;
-    public static ArrayList<String> fromTo;
 
-    public static void setUsers() {
-        FileHandler fileHandler = new FileHandler();
-        users = fileHandler.loadFile("./src/main/resources/users.txt");
-    }
-
-    public static void setMapper() {
-        FileHandler fileHandler = new FileHandler();
-        fromTo = fileHandler.loadFile("./src/main/resources/from_to.txt");
-    }
+public class UserService {
 
     public void listUsers(User exceptMe) {
-        setUsers();
-        setMapper();
+        UserRepository.setUsers();
+        FromToRepository.setMapper();
 
-        if (users == null || users.isEmpty()) {
+        if (UserRepository.users == null || UserRepository.users.isEmpty()) {
             System.out.println("No users available");
             return;
         }
 
         System.out.println("────────────────────── System Users ─────────────────────");
 
-        for (String userLine : UserServices.users) {
+        for (String userLine : UserRepository.users) {
             String[] line = userLine.split(";");
             if (line.length < 4) continue;
 
@@ -44,24 +36,24 @@ public class UserServices {
             System.out.println("username : " + username + " | user id : " + userId);
         }
 
-        System.out.println("───────────────────────────────────────────");
+        System.out.println(SEPARATOR);
     }
 
     public void printToUser(User user) {
 
-        if (user == null || users.isEmpty() ||
-                QuestionServices.questions == null || QuestionServices.questions.isEmpty() ||
-                UserServices.fromTo == null || UserServices.fromTo.isEmpty()) {
-            System.out.println("───────────────────────────────────────────");
+        if (user == null || UserRepository.users.isEmpty() ||
+                QuestionRepository.questions == null || QuestionRepository.questions.isEmpty() ||
+                FromToRepository.fromTo == null || FromToRepository.fromTo.isEmpty()) {
+            System.out.println(SEPARATOR);
             System.out.println("No Questions Asked");
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             return;
         }
         boolean found = false;
 
         int targetUserId = user.getId();
-        ArrayList<String> map = UserServices.fromTo;
-        ArrayList<String> questions = QuestionServices.questions;
+        ArrayList<String> map = FromToRepository.fromTo;
+        ArrayList<String> questions = QuestionRepository.questions;
 
         // Map questionId -> questionText
         Map<String, String> questionMap = new HashMap<>();
@@ -89,7 +81,7 @@ public class UserServices {
                 if(isAnonymous.get(questionId).equals("true")){
                     fromUsername = "Anonymous";
                 }else{
-                    fromUsername = UserServices.getUsername(fromId);
+                    fromUsername = UserService.getUsername(fromId);
                 }
                 String questionText = questionMap.get(questionId);
 
@@ -97,31 +89,30 @@ public class UserServices {
                     found = true;
                     System.out.println("From: " + fromUsername + " | Question Id : [" + questionId + "]" + " | Question: " + questionText);
                     System.out.print("    └──  Answer : " );
-                    String ans= answerByQid.get(questionId);
+                    String ans= AnswersRepository.answerByQid.get(questionId);
                     System.out.println(Objects.requireNonNullElse(ans, "Not Answered yet."));
                 }
             }
         }
         if (!found) {
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             System.out.println("No Questions Asked to you");
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
         }
     }
 
     public void printFromUser(User user) {
         if (user == null ||
-                QuestionServices.questions == null || QuestionServices.questions.isEmpty() ||
-                UserServices.fromTo == null || UserServices.fromTo.isEmpty()) {
-            System.out.println("───────────────────────────────────────────");
+                QuestionRepository.questions == null || QuestionRepository.questions.isEmpty() ||
+                FromToRepository.fromTo == null || FromToRepository.fromTo.isEmpty()) {
+            System.out.println(SEPARATOR);
             System.out.println("No Questions Asked");
-            System.out.println("───────────────────────────────────────────");
             return;
         }
         boolean found = false;
 
-        ArrayList<String> map = UserServices.fromTo;
-        ArrayList<String> questions = QuestionServices.questions;
+        ArrayList<String> map = FromToRepository.fromTo;
+        ArrayList<String> questions = QuestionRepository.questions;
 
         // Build a map for faster lookup
         Map<String, String> questionMap = new HashMap<>();
@@ -143,28 +134,28 @@ public class UserServices {
             String questionId = parts[2];
 
             if (fromId == user.getId()) {
-                String toUsername = UserServices.getUsername(toId);
+                String toUsername = UserService.getUsername(toId);
                 String questionText = questionMap.get(questionId);
 
                 if (questionText != null) {
                     found = true;
                     System.out.println("To : " + toUsername + " | Question Id : [" + questionId + "]" + " | Question : " + questionText);
                     System.out.print("    └──  Answer : " );
-                    String ans= answerByQid.get(questionId);
+                    String ans= AnswersRepository.answerByQid.get(questionId);
                     System.out.println(Objects.requireNonNullElse(ans, "Not Answered yet."));
                 }
             }
         }
         if (!found) {
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             System.out.println("No Questions Asked by you");
         }
-        System.out.println("───────────────────────────────────────────");
+
     }
 
 
     public static String getUsername(int id) {
-        ArrayList<String> username = users;
+        ArrayList<String> username = UserRepository.users;
         String[] array;
         for (String username1 : username) {
             array = username1.split(";");
@@ -178,7 +169,7 @@ public class UserServices {
     public static ArrayList<String> getQuestionsToMe(int id) { // get questions sent to me
         ArrayList<String> friends = new ArrayList<>();
         String[] array;
-        for (String username : UserServices.fromTo) {
+        for (String username : FromToRepository.fromTo) {
             array = username.split(";");
             if (array.length > 1 && array[1].equals(id + "")) {
                 friends.add(array[0] + ";" + array[2]);
@@ -190,7 +181,7 @@ public class UserServices {
     public static ArrayList<Integer> getQuestionByMe(int id) {
         ArrayList<Integer> questions = new ArrayList<>();
         String[] array;
-        for (String username1 : UserServices.fromTo) {
+        for (String username1 : FromToRepository.fromTo) {
             array = username1.split(";");
             if (array[0].equals(id + "")) {
                 questions.add(Integer.parseInt(array[2]));

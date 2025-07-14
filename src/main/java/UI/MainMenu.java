@@ -1,28 +1,39 @@
 package UI;
 
 import Utils.FileHandler;
+import Utils.IdGenerator;
+import Utils.InputValidator;
 import models.User;
-import services.QuestionServices;
-import services.SessionServices;
-import services.UserServices;
+import repository.UserRepository;
+import services.QuestionService;
+import services.SessionService;
+import services.UserService;
 
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import static Utils.Constants.SEPARATOR;
+import static Utils.Constants.USERS_FILE;
+
 public class MainMenu {
     private int signChoice;
     private static User currentUser;
+    InputValidator validator = new InputValidator();
+    UserService userService = new UserService();
+    QuestionService questionService = new QuestionService();
+    Scanner sc = new Scanner(System.in);
 
     public void showAuthenticationMenu() {
         System.out.println("[1] Sign Up");
         System.out.println("[2] Sign In");
-        System.out.println("Enter your Choice : ");
         Scanner sc = new Scanner(System.in);
-        int c = sc.nextInt();
+
+        int c = validator.getValidInteger(sc, "Enter your Choice : ");
+        sc.nextLine();
         if (c > 2 || c < 1) {
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             System.out.println("Invalid choice.");
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             showAuthenticationMenu();
         } else {
             signChoice = c;
@@ -31,48 +42,45 @@ public class MainMenu {
     }
 
     public void getUserData(int choice) {
+
         Scanner sc = new Scanner(System.in);
         if (choice == 1) {
-            System.out.println("Please enter your name : ");
-            String name = sc.nextLine();
-            System.out.println("Please enter your email : ");
-            String email = sc.nextLine();
-            System.out.println("Please enter your username : ");
-            String username = sc.nextLine();
-            System.out.println("Please enter your password : ");
-            String password = sc.nextLine();
+            String name = validator.getValidString(sc, "Enter your name : ");
+            String email = validator.getValidString(sc, "Enter your email : ");
+            String username = validator.getValidString(sc, "Enter your username : ");
+            String password = validator.getValidString(sc, "Enter your password : ");
             User user = new User(-1, name, email, username, password);
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             System.out.println("You have successfully logged in");
             System.out.println("Welcome " + username);
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             FileHandler fileHandler = new FileHandler();
-            user.setId(fileHandler.nextUserId());
-            fileHandler.saveObject(user.toString(),"./src/main/resources/users.txt");
+            IdGenerator generator = new IdGenerator();
+            user.setId(generator.nextUserId());
+            fileHandler.saveObject(user.toString(), USERS_FILE);
             currentUser = user;
 
         } else if (choice == 2) {
-            System.out.println("Please enter your username : ");
-            String username = sc.nextLine();
-            System.out.println("Please enter your password : ");
-            String password = sc.nextLine();
-            User newUser = SessionServices.signIn(username, password);
+
+            String username = validator.getValidString(sc, "Enter your username : ");
+            String password = validator.getValidString(sc, "Enter your password : ");
+            User newUser = SessionService.signIn(username, password);
             if (newUser != null) {
-                System.out.println("───────────────────────────────────────────");
+                System.out.println(SEPARATOR);
                 System.out.println("You have successfully logged in");
                 System.out.println("Welcome " + username);
-                System.out.println("───────────────────────────────────────────");
+                System.out.println(SEPARATOR);
                 currentUser = newUser;
             } else {
-                System.out.println("───────────────────────────────────────────");
+                System.out.println(SEPARATOR);
                 System.out.println("Invalid username or password.");
-                System.out.println("───────────────────────────────────────────");
+                System.out.println(SEPARATOR);
                 showAuthenticationMenu();
             }
         } else {
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             System.out.println("Invalid choice.");
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             showAuthenticationMenu();
         }
         showOptionsMenu();
@@ -95,150 +103,22 @@ public class MainMenu {
     }
 
     public void handleOption(int choice) {
-        UserServices userServices = new UserServices();
-        QuestionServices questionServices = new QuestionServices();
-        Scanner sc = new Scanner(System.in);
         if (choice == 1) {
-            userServices.printToUser(currentUser);
-            System.out.println("───────────────────────────────────────────");
+            userService.printToUser(currentUser);
+            System.out.println(SEPARATOR);
         } else if (choice == 2) {
-            userServices.printFromUser(currentUser);
+            userService.printFromUser(currentUser);
+            System.out.println(SEPARATOR);
         } else if (choice == 3) {
-            questionServices.printFeed();
+            questionService.printFeed();
         } else if (choice == 4) {
-            userServices.printToUser(currentUser);
-            ArrayList<String> arr = UserServices.getQuestionsToMe(currentUser.getId());
-            if (arr.isEmpty()) {
-//                System.out.println("No Questions Found to be Answered.");
-                showOptionsMenu();
-            }
-            System.out.println("Enter Question Id : ");
-            int id = sc.nextInt();
-            sc.nextLine();
-
-            String qid = null, uid = null ;
-            String[] parts;
-            for (String line : arr) {
-                parts = line.split(";");
-                if (parts.length > 1 && parts[1].equals(String.valueOf(id))) {
-                    uid = parts[0];
-                    qid = parts[1];
-                    break;
-                }
-            }
-            boolean overwrite = false;
-            if (qid == null || uid == null) {
-                System.out.println("Invalid Question Id.");
-                showOptionsMenu();
-            } else {
-                // ckeck if the question is answered or not
-                if(questionServices.isAnswered(Integer.parseInt(qid)) != -1){
-                    System.out.println("this question is already answered.");
-                    System.out.println("Do you want to overwrite the answer?  [ y or n ]");
-                    String res = sc.nextLine();
-                    if(res.equalsIgnoreCase("y")){
-                        overwrite = true;
-                    } else if (res.equalsIgnoreCase("n")) {
-                        overwrite = false;
-                        showOptionsMenu();
-                    }else {
-                        System.out.println("Invalid choice.");
-                        System.out.println("───────────────────────────────────────────");
-                    }
-                }
-                System.out.println("Enter your Answer : ");
-                String answer = sc.nextLine();
-                if(overwrite){
-
-                    questionServices.updateAnswer(questionServices.isAnswered(Integer.parseInt(qid)), answer);
-                }else {
-                    questionServices.answerQuestion(Integer.parseInt(uid), currentUser.getId(), Integer.parseInt(qid), answer);
-                }
-            }
-
+            handleAnswerQuestion();
         } else if (choice == 5) {
-            userServices.printFromUser(currentUser);
-            ArrayList<Integer> q = UserServices.getQuestionByMe(currentUser.getId());
-            if (q.isEmpty()) {
-                showOptionsMenu();
-            }
-            System.out.println("Enter Question Id to be removed : ");
-            int id = sc.nextInt();
-            sc.nextLine();
-            boolean valid = false;
-            for (int num : q) {
-                if (num == id) {
-                    questionServices.deleteQuestion(id);
-                    System.out.println("your question has been deleted | question id : " + id);
-                    System.out.println("───────────────────────────────────────────");
-                    valid = true;
-                    break;
-                }
-            }
-            if (!valid) {
-                System.out.println("Invalid Question Id.");
-                showOptionsMenu();
-            }
+            handleDeleteQuestion();
         } else if (choice == 6) {
-            userServices.listUsers(currentUser);
-            System.out.println("Enter user Id : ");
-            int userId;
-            userId = sc.nextInt();
-            sc.nextLine();
-            for (String line : UserServices.users) {
-                if (Integer.parseInt(line.split(";")[0]) == userId && userId != currentUser.getId()) {
-                    boolean isAnonymous = false;
-                    System.out.println("This question is Anonymous ?   [y or n]");
-                    String ans = sc.nextLine();
-                    if (ans.equalsIgnoreCase("y")) {
-                        isAnonymous = true;
-                    } else if (ans.equalsIgnoreCase("n")) {
-                        isAnonymous = false;
-                    } else {
-                        System.out.println("Invalid answer.");
-                        showOptionsMenu();
-                    }
-
-
-                    boolean isThreaded = false;
-                    System.out.println("This Question is Threaded ?   [y or n]");
-                    ans = sc.nextLine();
-                    if (ans.equalsIgnoreCase("y")) {
-                        isThreaded = true;
-                    }else if (ans.equalsIgnoreCase("n")) {
-                        isThreaded = false;
-                    }else {
-                        System.out.println("Invalid answer.");
-                        showOptionsMenu();
-                    }
-
-
-                    String cont;
-                    int parentId = -1;
-                    if (isThreaded) {
-                        System.out.println("Enter Parent Question Id : ");
-                        parentId = sc.nextInt();
-                        sc.nextLine();
-                        if (!questionServices.questionExist(parentId)) {
-                            System.out.println("Invalid Question Id.");
-                            System.out.println("───────────────────────────────────────────");
-                            showOptionsMenu();
-                        }
-                    }
-                    System.out.println("Enter your Question : ");
-                    cont = sc.nextLine();
-                    if (isThreaded && parentId != -1) {
-                        questionServices.askThreadedQuestion(currentUser.getId(), userId, parentId, cont, isAnonymous);
-                    } else {
-                        questionServices.askQuestion(currentUser.getId(), userId, cont, isAnonymous);
-                    }
-                    System.out.println("───────────────────────────────────────────");
-                    break;
-                }
-            }
-
+            handleAskQuestion();
         } else if (choice == 7) {
-            userServices.listUsers(null);
+            userService.listUsers(null);
         } else if (choice == 8) {
             currentUser = null;
             showAuthenticationMenu();
@@ -254,7 +134,135 @@ public class MainMenu {
         if (choice > 0 && choice < 9) {
             return choice;
         } else {
-            return -1;
+            throw new RuntimeException("Invalid choice.");
         }
+    }
+
+    private void handleAnswerQuestion() {
+        userService.printToUser(currentUser);
+        ArrayList<String> arr = UserService.getQuestionsToMe(currentUser.getId());
+        if (arr.isEmpty()) {
+            showOptionsMenu();
+        }
+
+        int id = validator.getValidInteger(sc, "Enter Question Id : ");
+        sc.nextLine();
+
+        String qid = null, uid = null;
+        String[] parts;
+        for (String line : arr) {
+            parts = line.split(";");
+            if (parts.length > 1 && parts[1].equals(String.valueOf(id))) {
+                uid = parts[0];
+                qid = parts[1];
+                break;
+            }
+        }
+        boolean overwrite = false;
+        if (qid == null || uid == null) {
+            System.out.println("Invalid Question Id.");
+            showOptionsMenu();
+        } else {
+            // ckeck if the question is answered or not
+            if (questionService.isAnswered(Integer.parseInt(qid)) != -1) {
+                System.out.println("this question is already answered.");
+                System.out.println("Do you want to overwrite the answer?  [ y or n ]");
+                boolean res = validator.getYesOrNo(sc, "Do you want to overwrite the answer?  [ y or n ]");
+                if (res) {
+                    overwrite = true;
+                } else {
+                    showOptionsMenu();
+                    System.out.println(SEPARATOR);
+                }
+            }
+            String answer = validator.getValidString(sc, "Enter your Answer : ");
+            if (overwrite) {
+                questionService.updateAnswer(questionService.isAnswered(Integer.parseInt(qid)), answer);
+            } else {
+                questionService.answerQuestion(Integer.parseInt(uid), currentUser.getId(), Integer.parseInt(qid), answer);
+            }
+        }
+
+    }
+
+    private void handleDeleteQuestion() {
+        userService.printFromUser(currentUser);
+        ArrayList<Integer> q = UserService.getQuestionByMe(currentUser.getId());
+        if (q.isEmpty()) {
+            showOptionsMenu();
+        }
+        int id = validator.getValidInteger(sc, "Enter Question Id to be removed : ");
+        sc.nextLine();
+        boolean valid = false;
+        for (int num : q) {
+            if (num == id) {
+                questionService.deleteQuestion(id);
+                System.out.println("your question has been deleted | question id : " + id);
+                System.out.println(SEPARATOR);
+                valid = true;
+                break;
+            }
+        }
+        if (!valid) {
+            System.out.println("Invalid Question Id.");
+            showOptionsMenu();
+        }
+    }
+
+    private void handleAskQuestion() {
+        userService.listUsers(currentUser);
+        int userId;
+        userId = validator.getValidInteger(sc, "Enter user Id : ");
+        sc.nextLine();
+        for (String line : UserRepository.users) {
+            if (Integer.parseInt(line.split(";")[0]) == userId && userId != currentUser.getId()) {
+                boolean isAnonymous = false;
+                System.out.println("This question is Anonymous ?   [y or n]");
+                String ans = sc.nextLine();
+                if (ans.equalsIgnoreCase("y")) {
+                    isAnonymous = true;
+                } else if (ans.equalsIgnoreCase("n")) {
+                    isAnonymous = false;
+                } else {
+                    System.out.println("Invalid answer.");
+                    showOptionsMenu();
+                }
+
+
+                boolean isThreaded = false;
+                System.out.println("This Question is Threaded ?   [y or n]");
+                ans = sc.nextLine();
+                if (ans.equalsIgnoreCase("y")) {
+                    isThreaded = true;
+                } else if (ans.equalsIgnoreCase("n")) {
+                    isThreaded = false;
+                } else {
+                    System.out.println("Invalid answer.");
+                    showOptionsMenu();
+                }
+
+
+                String cont;
+                int parentId = -1;
+                if (isThreaded) {
+                    parentId = validator.getValidInteger(sc, "Enter Parent Question Id : ");
+                    sc.nextLine();
+                    if (!questionService.questionExist(parentId)) {
+                        System.out.println("Invalid Question Id.");
+                        System.out.println(SEPARATOR);
+                        showOptionsMenu();
+                    }
+                }
+                cont = validator.getValidString(sc, "Enter your Question : ");
+                if (isThreaded && parentId != -1) {
+                    questionService.askThreadedQuestion(currentUser.getId(), userId, parentId, cont, isAnonymous);
+                } else {
+                    questionService.askQuestion(currentUser.getId(), userId, cont, isAnonymous);
+                }
+                System.out.println(SEPARATOR);
+                break;
+            }
+        }
+
     }
 }

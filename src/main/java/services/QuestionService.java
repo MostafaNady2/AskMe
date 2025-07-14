@@ -1,67 +1,40 @@
 package services;
 import Utils.FileHandler;
+import Utils.IdGenerator;
 import models.Answer;
 import models.Question;
 import models.ThreadedQeustion;
-
+import repository.AnswersRepository;
+import repository.FromToRepository;
+import repository.QuestionRepository;
 import java.io.*;
 import java.util.*;
 
-public class QuestionServices {
-    public static ArrayList<String> questions;
-    public static ArrayList<String> answers;
-    public static Map<String, String> answerByQid = new HashMap<>();
+import static Utils.Constants.*;
 
-    public static void setAnswerByQid() {
-        Map<String, String> answerMap = new HashMap<>();
-        for (String answerLine : answers) {
-            String[] parts = answerLine.split(";");
-            if (parts.length >= 2) {
-                answerMap.put(parts[0], parts[1]);
-            }
-        }
+public class QuestionService {
 
-        answerByQid.clear();
-        for (String questionLine : questions) {
-            String[] parts = questionLine.split(";");
-            if (parts.length >= 4) {
-                String questionId = parts[0];
-                String answerId = parts[3];
-                String answerContent = answerMap.get(answerId);
-                if (answerContent != null) {
-                    answerByQid.put(questionId, answerContent);
-                }
-            }
-        }
-    }
-
-    public static void setQuestions(){
-        FileHandler fileHandler = new FileHandler();
-        questions = fileHandler.loadFile("./src/main/resources/questions.txt");
-    }
-    public static void setAnswers(){
-        FileHandler fileHandler = new FileHandler();
-        answers = fileHandler.loadFile("./src/main/resources/answers.txt");
-    }
     public void askQuestion(int senderId , int receiverId, String content, boolean isAnonymous) {
         FileHandler filehandler = new FileHandler();
-        Question question = new Question(filehandler.nextQuestionId(),content,isAnonymous,-1);
-        filehandler.saveObject(question.toString(),"./src/main/resources/questions.txt");
+        IdGenerator generator = new IdGenerator();
+        Question question = new Question(generator.nextQuestionId(),content,isAnonymous,-1);
+        filehandler.saveObject(question.toString(),QUESTIONS_FILE);
         filehandler.saveFromTo(senderId,receiverId,question.getId());
-        setQuestions();
-        UserServices.setMapper();
+        QuestionRepository.setQuestions();
+        FromToRepository.setMapper();
     }
     public void askThreadedQuestion(int senderId , int receiverId, int parentId , String content,boolean isAnonymous) {
         FileHandler filehandler = new FileHandler();
-        ThreadedQeustion threadedQeustion = new ThreadedQeustion(filehandler.nextQuestionId(),content,isAnonymous,-1,parentId);
-        filehandler.saveObject(threadedQeustion.toString(),"./src/main/resources/questions.txt");
+        IdGenerator generator = new IdGenerator();
+        ThreadedQeustion threadedQeustion = new ThreadedQeustion(generator.nextQuestionId(),content,isAnonymous,-1,parentId);
+        filehandler.saveObject(threadedQeustion.toString(),QUESTIONS_FILE);
         filehandler.saveFromTo(senderId,receiverId,threadedQeustion.getId());
-        setQuestions();
-        UserServices.setMapper();
+        QuestionRepository.setQuestions();
+        FromToRepository.setMapper();
     }
     public void updateQuestion(int questionId, int targetFieldIndex, String answerId) {
         List<String> updatedLines = new ArrayList<>();
-        File file = new File("./src/main/resources/questions.txt");
+        File file = new File(QUESTIONS_FILE);
 
         try (Scanner scanner = new Scanner(file)) {
             while (scanner.hasNextLine()) {
@@ -94,23 +67,24 @@ public class QuestionServices {
         } catch (FileNotFoundException e) {
             System.out.println("Error writing updated questions.");
         }
-        setQuestions();
-        UserServices.setMapper();
+        QuestionRepository.setQuestions();
+        FromToRepository.setMapper();
     }
 
     public void answerQuestion(int senderId , int receiverId,int questionId, String content) {
 
         FileHandler filehandler = new FileHandler();
-        Answer answer = new Answer(filehandler.nextAnswerId(),content);
+        IdGenerator generator = new IdGenerator();
+        Answer answer = new Answer(generator.nextAnswerId(),content);
         updateQuestion(questionId,3,String.valueOf(answer.getId()));
-        filehandler.saveObject(answer.toString(),"./src/main/resources/answers.txt");
-        setAnswers();
-        setAnswerByQid();
+        filehandler.saveObject(answer.toString(),ANSWERS_FILE);
+        AnswersRepository.setAnswers();
+        AnswersRepository.setAnswerByQid();
     }
     public void deleteQuestion(int id) {
         // remove from questions.txt
-        List<String> newList = new ArrayList<>(QuestionServices.questions);
-        File file = new File("./src/main/resources/questions.txt");
+        List<String> newList = new ArrayList<>(QuestionRepository.questions);
+        File file = new File(QUESTIONS_FILE);
 
         newList.removeIf(line -> {
             String[] array = line.split(";");
@@ -126,8 +100,8 @@ public class QuestionServices {
         }
 
         // remove from from_to.txt
-        List<String> newFromTo = new ArrayList<>(UserServices.fromTo);
-        File fromToFile = new File("./src/main/resources/from_to.txt");
+        List<String> newFromTo = new ArrayList<>(FromToRepository.fromTo);
+        File fromToFile = new File(FROM_TO_FILE);
 
         newFromTo.removeIf(line -> {
             String[] array = line.split(";");
@@ -143,43 +117,43 @@ public class QuestionServices {
         }
 
         // Refresh in-memory data
-        setQuestions();
-        UserServices.setMapper();
+        QuestionRepository.setQuestions();
+        FromToRepository.setMapper();
     }
     public void updateAnswer(int answerId, String content) {
         String idStr = String.valueOf(answerId);
-        for (int i = 0; i < answers.size(); i++) {
-            String[] arr = answers.get(i).split(";");
+        for (int i = 0; i < AnswersRepository.answers.size(); i++) {
+            String[] arr = AnswersRepository.answers.get(i).split(";");
             if (arr.length > 1 && arr[0].equals(idStr)) {
                 arr[1] = content;
-                answers.set(i, String.join(";", arr));
+                AnswersRepository.answers.set(i, String.join(";", arr));
                 break;
             }
         }
 
-        File file = new File("./src/main/resources/answers.txt");
+        File file = new File(ANSWERS_FILE);
         try (PrintWriter pr = new PrintWriter(new FileWriter(file), true)){
-            for (String s : answers) {
+            for (String s : AnswersRepository.answers) {
                 pr.println(s);
             }
         }catch(IOException e){
             System.out.println("Error writing answers.");
         }
-        setAnswers();
-        setAnswerByQid();
+        AnswersRepository.setAnswers();
+        AnswersRepository.setAnswerByQid();
     }
 
     public void printFeed() {
-        ArrayList<String> fromToMap = UserServices.fromTo;
-        if (questions == null || questions.isEmpty() || fromToMap == null || fromToMap.isEmpty()) {
-            System.out.println("───────────────────────────────────────────");
+        ArrayList<String> fromToMap = FromToRepository.fromTo;
+        if (QuestionRepository.questions == null || QuestionRepository.questions.isEmpty() || fromToMap == null || fromToMap.isEmpty()) {
+            System.out.println(SEPARATOR);
             System.out.println("No questions available");
-            System.out.println("───────────────────────────────────────────");
+            System.out.println(SEPARATOR);
             return;
         }
         Map<String, String> qMap = new HashMap<>();
         Map<String,String> isAnonymous = new HashMap<>();
-        for (String qLine : questions) {
+        for (String qLine : QuestionRepository.questions) {
             String[] qParts = qLine.split(";");
             if (qParts.length > 2) {
                 isAnonymous.put(qParts[0], qParts[2]);
@@ -205,9 +179,9 @@ public class QuestionServices {
             if(isAnonymous.get(questionId).equals("true")){
                 fromUsername = "Anonymous";
             }else{
-                fromUsername = UserServices.getUsername(fromId);
+                fromUsername = UserService.getUsername(fromId);
             }
-            String toUsername = UserServices.getUsername(toId);
+            String toUsername = UserService.getUsername(toId);
             String questionText = qMap.get(questionId);
 
 
@@ -215,21 +189,21 @@ public class QuestionServices {
                 System.out.println("From : " + fromUsername + "    To : " + toUsername);
                 System.out.println("question id [" + questionId + "] | Q : " + questionText);
                 System.out.print("    └──  Answer : ");
-                String ans=answerByQid.get(questionId);
+                String ans=AnswersRepository.answerByQid.get(questionId);
                 System.out.println(Objects.requireNonNullElse(ans, "Not Answered yet."));
                 if(ans != null){
                     printThread(Integer.parseInt(questionId));
                 }
-                System.out.println("--------------------------------------------");
+                System.out.println("---------------------------------------------------");
             }
         }
 
-        System.out.println("───────────────────────────────────────────");
+        System.out.println(SEPARATOR);
     }
 
 
     public boolean questionExist(int id){
-        for(String s : questions){
+        for(String s : QuestionRepository.questions){
             if(s.split(";")[0].equals(id+"")){
                 return true;
             }
@@ -237,17 +211,17 @@ public class QuestionServices {
         return false;
     }
     public void printThread(int parentId){
-        ArrayList<String> fromToMap = UserServices.fromTo;
+        ArrayList<String> fromToMap = FromToRepository.fromTo;
         String []arr , l;
-        for(String s : questions){
+        for(String s : QuestionRepository.questions){
             arr= s.split(";");
             if(arr.length == 5 && Integer.parseInt(arr[4]) == parentId){
                 for(String line : fromToMap){
                     l=line.split(";");
                     if(l.length > 2 && l[2].equals(arr[0])){
-                        System.out.println("    from : " + UserServices.getUsername(Integer.parseInt(l[0])) + " to : " + UserServices.getUsername(Integer.parseInt(l[1])));
+                        System.out.println("    from : " + UserService.getUsername(Integer.parseInt(l[0])) + " to : " + UserService.getUsername(Integer.parseInt(l[1])));
                         System.out.println("    Thread : question id ["+arr[0]+"] " +"| Q : "+ arr[1]);
-                        String ans = answerByQid.get(arr[0]);
+                        String ans = AnswersRepository.answerByQid.get(arr[0]);
                         System.out.print("    └──  Answer : ");
                         System.out.println(Objects.requireNonNullElse(ans, "Not Answered yet."));
                     }
@@ -257,7 +231,7 @@ public class QuestionServices {
     }
     public int isAnswered(int id){
         String []arr;
-        for(String s : questions){
+        for(String s : QuestionRepository.questions){
             arr = s.split(";");
             if(arr.length > 3 && Integer.parseInt(arr[0]) == id && Integer.parseInt(arr[3]) != -1){
                 return Integer.parseInt(arr[3]);

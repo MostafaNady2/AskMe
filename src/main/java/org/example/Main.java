@@ -1,9 +1,9 @@
 package org.example;
 import UI.MainMenu;
-import services.SessionServices;
+import services.SessionService;
 public class Main {
     public static void main(String[] args) {
-        SessionServices.startSession();
+        SessionService.startSession();
         MainMenu mainMenu = new MainMenu();
         mainMenu.showAuthenticationMenu();
 

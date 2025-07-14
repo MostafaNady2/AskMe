@@ -1,3 +1,5 @@
 1;i am good
-2;yes , i love mary
 3;i am 22 years old
+4;yes, i am fine.
+5;i am fine , thanks.
+6;i am fine,thanks.
